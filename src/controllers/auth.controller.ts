@@ -4,6 +4,23 @@ import axios from 'axios';
 import { uid } from 'uid';
 import { getClientInfo } from '../utils/getClientInfo';
 import { LoginSession, User } from '../models';
+import modelFiltering from '../utils/modelFiltering';
+
+async function updateIpLocation(ip: string | null, loginSessionId: number) {
+  try {
+    if (!ip || !loginSessionId) {
+      return;
+    }
+    const { data } = await axios.get(`https://ipinfo.io/${ip}/json`);
+    const location = data.city
+      ? `${data.city || 'Unknown city'}, ${data.region || 'Unknown region'}, ${data.country || 'Unknown country'}`
+      : 'Unknown location';
+
+    await LoginSession.update({ location }, { where: { id: loginSessionId } });
+  } catch (error) {
+    console.error('Error updating IP location:', error);
+  }
+}
 
 export const login = async (
   req: Request,
@@ -12,10 +29,6 @@ export const login = async (
 ) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return next('Invalid credentials');
-    }
 
     const user = await User.findOne({ where: { email } });
 
@@ -44,7 +57,9 @@ export const login = async (
 
     updateIpLocation(ip, createdSession?.id).catch(() => {});
 
-    res.json({ message: 'Login successful', token: rawToken });
+    const fullToken = `${createdSession.id}|${rawToken}`;
+
+    res.json({ message: 'Login successful', token: fullToken });
   } catch (error) {
     next(error);
   }
@@ -58,21 +73,18 @@ export const signup = async (
   try {
     const { name, email, phone, password } = req.body;
 
-    if (!email || !password) {
-      return next('Invalid credentials');
+    const user = await User.findOne({ where: { email }, attributes: ['id'] });
+
+    if (user) {
+      return next('User already exists');
     }
 
-    const user = await User.findOne({ where: { email } });
-
-    if (!user) {
-      return next('Invalid credentials');
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      return next('Invalid credentials');
-    }
+    const newUser = await User.create({
+      name,
+      email,
+      phone,
+      password: bcrypt.hashSync(password, 10)
+    });
 
     const { device, ip } = getClientInfo(req);
 
@@ -80,7 +92,7 @@ export const signup = async (
     const hashedToken = bcrypt.hashSync(rawToken, 10);
 
     const createdSession = await LoginSession.create({
-      userId: user.id,
+      userId: newUser.id,
       token: hashedToken,
       device,
       ipAddress: ip,
@@ -89,22 +101,85 @@ export const signup = async (
 
     updateIpLocation(ip, createdSession?.id).catch(() => {});
 
-    res.json({ message: 'Login successful', token: rawToken });
+    const fullToken = `${createdSession.id}|${rawToken}`;
+
+    res.json({ message: 'Account Created Successfully', token: fullToken });
   } catch (error) {
     next(error);
   }
 };
 
-async function updateIpLocation(ip: string | null, loginSessionId: number) {
+export const refresh = async (
+  req: Request & { user?: User },
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    if (!ip || !loginSessionId) {
-      return;
-    }
-    const { data } = await axios.get(`https://ipinfo.io/${ip}/json`);
-    const location = `${data.city || 'Unknown city'}, ${data.region || 'Unknown region'}, ${data.country || 'Unknown country'}`;
-
-    await LoginSession.update({ location }, { where: { id: loginSessionId } });
+    res.json({ ...(req.user || {}) });
   } catch (error) {
-    console.error('Error updating IP location:', error);
+    next(error);
   }
-}
+};
+
+export const changePassword = async (
+  req: Request & { id?: number },
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { old_password, new_password } = req.body;
+
+    const user = await User.findOne({ where: { id: req.id } });
+
+    if (!user) {
+      return next('Invalid credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(old_password, user.password);
+
+    if (!isPasswordValid) {
+      return next('Invalid password');
+    }
+
+    user.password = bcrypt.hashSync(new_password, 10);
+    await user.save();
+
+    await LoginSession.update(
+      { status: 'expired' },
+      { where: { userId: user.id } }
+    );
+
+    res.json({ message: 'Password changed successfully. Please login again.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getLoginSessions = async (
+  req: Request & { id?: number },
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { conditions, limit, page } = modelFiltering(req);
+    conditions.where = {
+      ...conditions.where,
+      userId: req.id
+    };
+
+    const loginSessions = await LoginSession.findAndCountAll({
+      ...conditions,
+      attributes: { exclude: ['token'] }
+    });
+
+    res.json({
+      totalPages: Math.ceil(loginSessions.count / limit),
+      totalItems: loginSessions.count,
+      currentPage: page,
+      loginSessions: loginSessions.rows,
+      limit
+    });
+  } catch (error) {
+    next(error);
+  }
+};

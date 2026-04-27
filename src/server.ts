@@ -1,10 +1,26 @@
-import dotenv from 'dotenv';
-import app from './app/app';
+import express from 'express';
+import cors from 'cors';
+import log from './middlewares/log';
+import apiRoutes from './app/api.routes';
+import { notFoundHandler, errorHandler } from './app/error';
+import { env } from './config/env';
 
-dotenv.config();
+const app = express();
 
-const PORT = process.env.PORT || 5000;
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(log);
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.get('/', (_req, res) => {
+  res.send('API is running...');
+});
+
+app.use(apiRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+app.listen(env.port, () => {
+  console.log(`Server is running on port ${env.port}`);
 });

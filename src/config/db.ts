@@ -1,18 +1,11 @@
 import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
+import { env } from './env';
 
-dotenv.config();
-
-const sequelize = new Sequelize(
-  process.env.DB_NAME as string,
-  process.env.DB_USER as string,
-  process.env.DB_PASS,
-  {
-    host: process.env.DB_HOST,
-    dialect: 'mysql',
-    logging: false
-  }
-);
+const sequelize = new Sequelize(env.db_name, env.db_user, env.db_pass, {
+  host: env.db_host,
+  dialect: 'mysql',
+  logging: false
+});
 
 sequelize
   .authenticate()

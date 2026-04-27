@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { env } from '../config/env';
 
 export default function log(req: Request, res: Response, next: NextFunction) {
-  if (process.env.NODE_ENV === 'production') {
+  if (env.node_env === 'production') {
     return next();
   }
 
