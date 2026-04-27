@@ -4,6 +4,7 @@ import log from './middlewares/log';
 import apiRoutes from './app/api.routes';
 import { notFoundHandler, errorHandler } from './app/error';
 import { env } from './config/env';
+import path from 'path';
 
 const app = express();
 
@@ -15,6 +16,8 @@ app.use(log);
 app.get('/', (_req, res) => {
   res.send('API is running...');
 });
+
+app.use('/assets', express.static(path.join(process.cwd(), 'uploads')));
 
 app.use(apiRoutes);
 
