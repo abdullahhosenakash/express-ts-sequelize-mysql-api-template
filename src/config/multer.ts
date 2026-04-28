@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { getFilename } from '../utils/file';
 
 function getUploadPath(): string {
   const now = new Date();
@@ -9,7 +10,6 @@ function getUploadPath(): string {
 
   const uploadPath = path.join(process.cwd(), 'uploads', year, month);
 
-  // folder না থাকলে create করবে
   fs.mkdirSync(uploadPath, { recursive: true });
 
   return uploadPath;
@@ -22,15 +22,14 @@ const storage = multer.diskStorage({
   },
 
   filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, uniqueName);
+    const name = getFilename(file);
+    cb(null, name);
   }
 });
 
 export const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
+    fileSize: 50 * 1024 * 1024
   }
 });

@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { env } from '../config/env';
 import { Request } from 'express';
+import sharp from 'sharp';
 
 function getFilePathFromUrl(url: string): string | null {
   try {
@@ -59,7 +60,7 @@ function deleteUploadedFiles(req: Request) {
 }
 
 function getFilename(file: Express.Multer.File) {
-  if (!file) return null;
+  if (!file) return '';
 
   const ext = path.extname(file.originalname);
   const nameWithoutExt = path.basename(file.originalname, ext);
@@ -92,4 +93,64 @@ function getFilename(file: Express.Multer.File) {
   return filename;
 }
 
-export { deleteUploadedFiles, getFilename };
+async function convertToWebp(req: any, _res: any, next: any) {
+  try {
+    if (!req.file) return next();
+
+    const originalRelativePath = req.fileRelativePath;
+
+    if (!req.file.mimetype.startsWith('image/')) {
+      req.filelink = `/assets/${originalRelativePath}`;
+      return next();
+    }
+
+    const filePath = path.join(process.cwd(), 'uploads', originalRelativePath);
+
+    const ext = path.extname(filePath);
+    const outputPath = filePath.replace(ext, '.webp');
+
+    let quality = 80;
+    let buffer: Buffer;
+
+    const resizeOptions: sharp.ResizeOptions = {
+      width: 1280,
+      withoutEnlargement: true
+    };
+
+    do {
+      buffer = await sharp(filePath)
+        .resize(resizeOptions)
+        .webp({ quality })
+        .toBuffer();
+
+      quality -= 10;
+    } while (buffer.length > 200 * 1024 && quality > 20);
+
+    await sharp(buffer).toFile(outputPath);
+    console.log('convertToWebp', filePath);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    const filename = path.basename(outputPath);
+    const [year, month] = originalRelativePath.split('/');
+
+    req.filename = filename;
+    req.fileRelativePath = `${year}/${month}/${filename}`;
+    req.filelink = `/assets/${year}/${month}/${filename}`;
+
+    next();
+  } catch (error) {
+    console.error('convertToWebp error:', error);
+    try {
+      if (req.fileRelativePath) {
+        req.filelink = `/assets/${req.fileRelativePath}`;
+      }
+    } catch {}
+
+    next();
+  }
+}
+
+export { deleteUploadedFiles, getFilename, convertToWebp };
