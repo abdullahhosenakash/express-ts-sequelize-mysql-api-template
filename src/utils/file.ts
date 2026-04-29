@@ -20,8 +20,8 @@ function getFilePathFromUrl(url: string): string | null {
       relativePath = url.replace(env.api, '');
     }
 
-    // remove leading /assets
-    relativePath = relativePath.replace(/^\/assets\//, '');
+    // remove leading /assets to /uploads
+    relativePath = relativePath.replace(/^\/assets\//, '/uploads/');
 
     return path.join(process.cwd(), relativePath);
   } catch {
@@ -33,9 +33,6 @@ function deleteUploadedFiles(req: Request & { filelink?: string }) {
   try {
     const old_files = JSON.parse(req.body?.old_files || '[]');
     const uploaded_filename = req.filelink;
-
-    console.log('old_files', old_files);
-    console.log('uploaded_filename', uploaded_filename);
 
     if (!Array.isArray(old_files) || old_files.length === 0) return;
 
