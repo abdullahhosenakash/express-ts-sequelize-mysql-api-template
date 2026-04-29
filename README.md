@@ -27,6 +27,7 @@ Includes authentication, session management, file upload with compression, and s
   - Automatic image compression with `sharp`
   - Converts images to **WebP (~200KB)**
   - Organized folder structure (`/uploads/year/month`)
+  - Hidden file path (`/assets/year/month`)
   - Delete old files support
 
 - 👤 **User Module**
@@ -62,17 +63,19 @@ Includes authentication, session management, file upload with compression, and s
 ```
 src/
 │
-├── config/           # DB, env configs
+├── app/              # API routes, error handling, etc.
+├── config/           # DB, env configs, multer setup
 ├── controllers/      # Route controllers
+├── email/            # Email templates and sending logic
 ├── middlewares/      # Auth, validation, upload, etc.
 ├── models/           # Sequelize models
 ├── routes/           # API routes
-├── services/         # Business logic (optional)
-├── utils/            # Helpers (file delete, mail, etc.)
+├── utils/            # Helpers
+├── validations/      # Request validations
+|
+|── server.ts         # Entry point
 │
-├── uploads/          # Uploaded files (year/month)
-│
-└── server.ts         # Entry point
+└── uploads/          # Uploaded files (year/month)
 ```
 
 ---
@@ -80,9 +83,9 @@ src/
 ## ⚙️ Installation
 
 ```bash
-git clone https://github.com/your-username/your-repo.git
+git clone https://github.com/abdullahhosenakash/express-ts-sequelize-mysql-api-template.git
 
-cd your-repo
+cd express-ts-sequelize-mysql-api-template
 
 npm install
 ```
@@ -91,23 +94,7 @@ npm install
 
 ## 🔑 Environment Variables
 
-Create a `.env` file:
-
-```
-PORT=5000
-
-DB_HOST=localhost
-DB_USER=root
-DB_PASS=password
-DB_NAME=database_name
-
-SMTP_HOST=smtp.example.com
-SMTP_PORT=465
-SMTP_USER=your@email.com
-SMTP_PASS=yourpassword
-
-BASE_URL=http://localhost:5000
-```
+An env file is provided. You can just update the file variables.
 
 ---
 
@@ -133,9 +120,10 @@ npm start
 ### 🔐 Auth Routes
 
 ```
-POST   /api/auth/register
-POST   /api/auth/login
-POST   /api/auth/logout
+POST   /auth/signup
+POST   /auth/login
+POST   /auth/change-password
+GET    /auth/refresh
 ```
 
 ---
@@ -143,10 +131,7 @@ POST   /api/auth/logout
 ### 👤 User Routes
 
 ```
-GET    /api/users
-GET    /api/users/:id
-PUT    /api/users/:id
-DELETE /api/users/:id
+GET    /user/all
 ```
 
 ---
@@ -154,7 +139,7 @@ DELETE /api/users/:id
 ### 📧 Mail Routes
 
 ```
-POST   /api/mail/send
+POST   /mail/testing
 ```
 
 ---
@@ -162,11 +147,11 @@ POST   /api/mail/send
 ### 📁 Upload Routes
 
 ```
-POST   /api/upload
+POST   /upload/single
 ```
 
-- Accepts image files
-- Converts to WebP
+- Accepts any files
+- Image files converted to WebP
 - Compresses to ~200KB
 - Returns file path
 
@@ -175,12 +160,12 @@ POST   /api/upload
 ### 🧾 Session Routes
 
 ```
-GET    /api/sessions
-DELETE /api/sessions/:id
+GET    /auth/login-sessions
+DELETE /auth/login-sessions/:id
 ```
 
 - View login history
-- Manage active sessions
+- Manage active sessions with ip and location details
 
 ---
 
@@ -215,7 +200,7 @@ DELETE /api/sessions/:id
 ```json
 {
   "file": "image.png",
-  "old_files": ["/uploads/2026/04/example.webp"]
+  "old_files": ["/assets/2026/04/example.webp"]
 }
 ```
 
@@ -235,7 +220,6 @@ DELETE /api/sessions/:id
 - Refresh token system
 - Role & permission system (RBAC)
 - API rate limiting
-- Swagger documentation
 
 ---
 
@@ -253,7 +237,13 @@ ISC License
 
 ## 💡 Author
 
-Built for rapid backend development with clean structure and production-ready features.
+Abdullah Hosen Akash (@abdullahhosenakash)
+
+---
+
+## 🚀 About
+
+Built for rapid backend development with a clean architecture, scalable structure, and production-ready setup for modern API applications.
 
 ---
 

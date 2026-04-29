@@ -6,6 +6,7 @@ import { getClientInfo } from '../utils/getClientInfo';
 import { LoginSession, User } from '../models';
 import modelFiltering from '../utils/modelFiltering';
 import error_message from '../utils/error_message';
+import { where } from 'sequelize';
 
 async function updateIpLocation(ip: string | null, loginSessionId: number) {
   try {
@@ -180,6 +181,30 @@ export const getLoginSessions = async (
       loginSessions: loginSessions.rows,
       limit
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteLoginSession = async (
+  req: Request & { id?: number },
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = req.params.id;
+
+    const loginSession = await LoginSession.findOne({
+      where: { id, userId: req.id }
+    });
+
+    if (!loginSession) {
+      return next('Invalid session');
+    }
+
+    await loginSession.destroy();
+
+    res.json({ message: 'Session deleted successfully' });
   } catch (error) {
     next(error);
   }

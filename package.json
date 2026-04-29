@@ -9,7 +9,11 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts"
   },
   "keywords": [],
-  "author": "",
+  "author": {
+    "name": "Abdullah Hosen Akash",
+    "email": "abdullahhosenakash@gmail.com",
+    "url": "https://github.com/abdullahhosenakash"
+  },
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {

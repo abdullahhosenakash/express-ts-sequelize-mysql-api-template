@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   changePassword,
+  deleteLoginSession,
   getLoginSessions,
   login,
   refresh,
@@ -26,5 +27,6 @@ router.post(
 );
 router.get('/refresh', verifyToken, refresh);
 router.get('/login-sessions', verifyToken, getLoginSessions);
+router.delete('/login-sessions/:id', verifyToken, deleteLoginSession);
 
 export default router;
