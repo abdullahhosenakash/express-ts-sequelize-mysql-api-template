@@ -5,6 +5,7 @@ import { uid } from 'uid';
 import { getClientInfo } from '../utils/getClientInfo';
 import { LoginSession, User } from '../models';
 import modelFiltering from '../utils/modelFiltering';
+import error_message from '../utils/error_message';
 
 async function updateIpLocation(ip: string | null, loginSessionId: number) {
   try {
@@ -18,7 +19,7 @@ async function updateIpLocation(ip: string | null, loginSessionId: number) {
 
     await LoginSession.update({ location }, { where: { id: loginSessionId } });
   } catch (error) {
-    console.error('Error updating IP location:', error);
+    console.error('Error updating IP location:', error_message(error));
   }
 }
 
