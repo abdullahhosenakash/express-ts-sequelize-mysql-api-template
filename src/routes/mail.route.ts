@@ -2,11 +2,13 @@ import express from 'express';
 import sendEmail from '../email/sendMail';
 import validate from '../middlewares/validate';
 import { sendEmailSchema } from '../validations/mail.validation';
+import verifyToken from '../middlewares/verifyToken';
 
 const router = express.Router();
 
 router.post(
   '/testing',
+  verifyToken,
   validate(sendEmailSchema),
   async (req: any, res: any, next: any) => {
     try {
