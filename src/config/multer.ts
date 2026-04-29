@@ -16,14 +16,21 @@ function getUploadPath(): string {
 }
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination: function (req: any, file, cb) {
     const uploadPath = getUploadPath();
     cb(null, uploadPath);
   },
 
-  filename: function (req, file, cb) {
-    const name = getFilename(file);
-    cb(null, name);
+  filename: function (req: any, file, cb) {
+    const fileData = getFilename(file);
+    if (fileData) {
+      req.filepath = fileData.relativePath;
+      req.year = fileData.year;
+      req.month = fileData.month;
+      cb(null, fileData.filename);
+    } else {
+      cb(null, '');
+    }
   }
 });
 

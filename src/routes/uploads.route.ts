@@ -10,7 +10,7 @@ router.post(
   convertToWebp,
   (req: any, res) => {
     res.json({
-      file: req.filelink
+      filelink: req.filelink
     });
   }
 );

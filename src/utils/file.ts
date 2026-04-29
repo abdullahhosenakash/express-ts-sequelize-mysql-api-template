@@ -20,8 +20,8 @@ function getFilePathFromUrl(url: string): string | null {
       relativePath = url.replace(env.api, '');
     }
 
-    // remove leading slash
-    relativePath = relativePath.replace(/^\/+/, '');
+    // remove leading /assets
+    relativePath = relativePath.replace(/^\/assets\//, '');
 
     return path.join(process.cwd(), relativePath);
   } catch {
@@ -29,10 +29,13 @@ function getFilePathFromUrl(url: string): string | null {
   }
 }
 
-function deleteUploadedFiles(req: Request) {
+function deleteUploadedFiles(req: Request & { filelink?: string }) {
   try {
     const old_files = JSON.parse(req.body?.old_files || '[]');
-    const uploaded_filename = req.file?.filename;
+    const uploaded_filename = req.filelink;
+
+    console.log('old_files', old_files);
+    console.log('uploaded_filename', uploaded_filename);
 
     if (!Array.isArray(old_files) || old_files.length === 0) return;
 
@@ -44,23 +47,18 @@ function deleteUploadedFiles(req: Request) {
       try {
         const filename = path.basename(filePath);
 
-        // নতুন upload করা file delete না করতে
         if (uploaded_filename && filename === uploaded_filename) continue;
 
         if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
           fs.unlinkSync(filePath);
         }
-      } catch {
-        // silently ignore
-      }
+      } catch {}
     }
-  } catch {
-    // silently ignore
-  }
+  } catch {}
 }
 
 function getFilename(file: Express.Multer.File) {
-  if (!file) return '';
+  if (!file) return null;
 
   const ext = path.extname(file.originalname);
   const nameWithoutExt = path.basename(file.originalname, ext);
@@ -90,21 +88,25 @@ function getFilename(file: Express.Multer.File) {
     }
   }
 
-  return filename;
+  return {
+    filename,
+    relativePath: `${year}/${month}/${filename}`,
+    year,
+    month
+  };
 }
 
 async function convertToWebp(req: any, _res: any, next: any) {
   try {
-    if (!req.file) return next();
+    if (!req.file) throw new Error('No file modified');
 
-    const originalRelativePath = req.fileRelativePath;
+    const filepath = req.filepath;
 
     if (!req.file.mimetype.startsWith('image/')) {
-      req.filelink = `/assets/${originalRelativePath}`;
-      return next();
+      throw new Error('No file modified');
     }
 
-    const filePath = path.join(process.cwd(), 'uploads', originalRelativePath);
+    const filePath = path.join(process.cwd(), 'uploads', filepath);
 
     const ext = path.extname(filePath);
     const outputPath = filePath.replace(ext, '.webp');
@@ -127,25 +129,24 @@ async function convertToWebp(req: any, _res: any, next: any) {
     } while (buffer.length > 200 * 1024 && quality > 20);
 
     await sharp(buffer).toFile(outputPath);
-    console.log('convertToWebp', filePath);
 
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
 
-    const filename = path.basename(outputPath);
-    const [year, month] = originalRelativePath.split('/');
+    const webpFilename = path.basename(outputPath);
+    const year = req.year;
+    const month = req.month;
 
-    req.filename = filename;
-    req.fileRelativePath = `${year}/${month}/${filename}`;
-    req.filelink = `/assets/${year}/${month}/${filename}`;
+    req.filename = webpFilename;
+    req.fileRelativePath = `${year}/${month}/${webpFilename}`;
+    req.filelink = `/assets/${year}/${month}/${webpFilename}`;
 
     next();
   } catch (error) {
-    console.error('convertToWebp error:', error);
     try {
-      if (req.fileRelativePath) {
-        req.filelink = `/assets/${req.fileRelativePath}`;
+      if (req.filepath) {
+        req.filelink = `/assets/${req.filepath}`;
       }
     } catch {}
 
