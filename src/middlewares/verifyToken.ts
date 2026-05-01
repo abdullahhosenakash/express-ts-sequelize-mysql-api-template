@@ -10,18 +10,18 @@ export default async function verifyToken(
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.sendStatus(401);
+      return res.status(401).json({ message: 'Unauthorized access' });
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      return res.sendStatus(403);
+      return next('Forbidden access');
     }
 
     const [sessionId, rawToken] = token.split('|');
 
     if (!sessionId || !rawToken) {
-      return res.sendStatus(403);
+      return next('Bad Token');
     }
 
     const loginSession = await LoginSession.findOne({
@@ -35,14 +35,11 @@ export default async function verifyToken(
       ]
     });
 
-    console.log(loginSession, 'session');
-
     if (!loginSession || !loginSession.user) {
       return next('Invalid access token');
     }
 
     if (!bcrypt.compareSync(rawToken, loginSession.token)) {
-      console.log('Invalid access token');
       return next('Invalid access token');
     }
 
