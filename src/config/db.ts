@@ -3,6 +3,7 @@ import { env } from './env';
 
 const sequelize = new Sequelize(env.db_name, env.db_user, env.db_pass, {
   host: env.db_host,
+  port: Number(env.db_port),
   dialect: 'mysql',
   logging: false
 });

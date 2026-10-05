@@ -7,6 +7,7 @@ export const env = {
   db_user: process.env.DB_USER!,
   db_pass: process.env.DB_PASS!,
   db_host: process.env.DB_HOST!,
+  db_port: process.env.DB_PORT!,
   node_env: process.env.NODE_ENV!,
   api: process.env.API!,
   smtp_host: process.env.SMTP_HOST!,
